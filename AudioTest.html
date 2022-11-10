@@ -79,8 +79,8 @@
                 // console.log(`Context time: ${ts.currentTime} | Performance time: ${ts.performanceTime}`)
                 time.innerText = this.audioContext.currentTime.toFixed(3) + " / " + this.totalTime
                 if (this.audioContext.currentTime >= this.totalTime) {
-                    cancelAnimationFrame(this.player)
                     this.audioContext.currentTime = this.totalTime
+                    cancelAnimationFrame(this.player)
                 } else {
                     this.player = requestAnimationFrame(this.showProcess.bind(this)); // Reregister itself
                 }
