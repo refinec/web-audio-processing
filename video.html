@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+</head>
+
+<body>
+    <!-- <audio id="v" controls src="./011.mp3"></audio> -->
+    <button id="button">播放</button>
+    <p id="time">0 / 0</p>
+    <!-- <div id="mse"></div> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/xgplayer@2.32.1/dist/index.min.js" type="text/javascript"></script> -->
+    <script>
+        // function padStart(str, length, pad) {
+        //     let charstr = String(pad)
+        //     let len = length >> 0
+        //     let maxlen = Math.ceil(len / charstr.length)
+        //     let chars = []
+        //     let r = String(str)
+        //     while (maxlen--) {
+        //         chars.push(charstr)
+        //     }
+        //     return chars.join('').substring(0, len - r.length) + r
+        // }
+        // function format(time) {
+        //     if (window.isNaN(time)) {
+        //         return ''
+        //     }
+        //     let hour = padStart(Math.floor(time / 3600), 2, 0)
+        //     let minute = padStart(Math.floor((time - hour * 3600) / 60), 2, 0)
+        //     let second = padStart(Math.floor((time - hour * 3600 - minute * 60)), 2, 0)
+        //     return (hour === '00' ? [minute, second] : [hour, minute, second]).join(':')
+        // }
+        // window.onload = () => {
+        //     const v = document.getElementById("v")
+        //     const audioCtx = new AudioContext()
+        //     const source = audioCtx.createMediaElementSource(v);
+        //     v.ontimeupdate = (e) => {
+        //         console.log('source', source.currentTime)
+        //     }
+        // }
+
+        const button = document.getElementById("button")
+        const time = document.getElementById("time")
+        class Demo1 {
+            constructor() {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext || window.mozAudioContext || window.msAudioContext)();
+                this.totalTime = 0;
+                this.player = null;
+            }
+
+            async start() {
+                const musicArrayBuffer = await this.getMp3ArrayBuffer('./011.mp3');
+                const decodedAudioData = await this.decode(musicArrayBuffer);
+                this.play(decodedAudioData);
+            }
+
+            /**
+             * @param {AudioBuffer} decodedAudioData
+             * @returns
+             */
+            async play(decodedAudioData) {
+                const sourceNode = this.audioContext.createBufferSource();
+                sourceNode.buffer = decodedAudioData;
+                sourceNode.connect(this.audioContext.destination);
+                sourceNode.start();
+                this.totalTime = sourceNode.buffer.duration;
+                console.log('播放!总时长：' + this.totalTime)
+                this.showProcess();
+            }
+
+            showProcess() {
+                // const ts = _this.audioContext.getOutputTimestamp();
+                // console.log(`Context time: ${ts.currentTime} | Performance time: ${ts.performanceTime}`)
+                time.innerText = this.audioContext.currentTime.toFixed(3) + " / " + this.totalTime
+                if (this.audioContext.currentTime >= this.totalTime) {
+                    cancelAnimationFrame(this.player)
+                    this.audioContext.currentTime = this.totalTime
+                } else {
+                    this.player = requestAnimationFrame(this.showProcess.bind(this)); // Reregister itself
+                }
+            }
+            /**
+             * @param {string} url
+             * @returns {ArrayBuffer}
+             */
+            async getMp3ArrayBuffer(url) {
+                return await fetch(url).then((r) => r.arrayBuffer());
+
+                // return new Promise((resolve, reject) => {
+                //     const xhr = new XMLHttpRequestBAK();
+
+                //     xhr.open("GET", url, true);
+                //     xhr.responseType = "arraybuffer";
+                //     xhr.send();
+
+                //     // xhr.addEventListener("progress", (e) => {
+                //     //     super.fileProgress(e);
+                //     // });
+
+                //     xhr.addEventListener("load", (e) => {
+                //         resolve(e)
+                //         // const decoderPromise = this.fileLoad(e);
+
+                //         // decoderPromise
+                //         //     .then((audioBuffer) => {
+                //         //         resolve(audioBuffer);
+                //         //     })
+                //         //     .catch(reject);
+                //     });
+
+                //     xhr.addEventListener("error", () => {
+                //         reject(Error(`Track ${url} failed to load`));
+                //     });
+                // });
+            }
+
+            // fileLoad(e) {
+            //     const audioData = e.target.response || e.target.result;
+            //     return new Promise((resolve, reject) => {
+            //         this.audioContext.decodeAudioData(
+            //             audioData,
+            //             (audioBuffer) => {
+            //                 // this.audioBuffer = audioBuffer;
+            //                 // this.setStateChange(STATE_FINISHED);
+
+            //                 resolve(audioBuffer);
+            //             },
+            //             (err) => {
+            //                 if (err === null) {
+            //                     // Safari issues with null error
+            //                     reject(Error("MediaDecodeAudioDataUnknownContentType"));
+            //                 } else {
+            //                     reject(err);
+            //                 }
+            //             }
+            //         );
+            //     });
+            // }
+            /**
+             * @param {ArrayBuffer} arrayBuffer
+             * @returns {AudioBuffer}
+             */
+            async decode(arrayBuffer) {
+                return this.audioContext.decodeAudioData(arrayBuffer);
+            }
+        }
+        const au = new Demo1();
+        button.onclick = function () {
+            au.start()
+        };
+    </script>
+    <!-- <script>
+
+        const audioContext = new AudioContext();
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+
+        const msg = document.getElementById('btn');
+        var total = 0;
+        const pi = '3.1415926'
+        var player = null;
+        var gbuffer;
+        async function play() {
+            msg.innerHTML = '音频加载中';
+            const res = await fetch('/public/domec.mp3');
+            const arraybuffer = await res.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arraybuffer);
+            const source = audioContext.createBufferSource();
+            source.connect(audioContext.destination); //连接上实例
+            source.connect(analyser);
+            source.buffer = audioBuffer;
+            gbuffer = audioBuffer;
+            source.start();
+            duration = source.buffer.duration;
+            msg.innerHTML = '音频加载完成，开始播放';
+            msg.disabled = true;
+            showProcess();
+        }
+
+        function showBuffer() {
+            let arr = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(arr);
+
+            let pe = ''
+            for (let i = 0; i < pi.length; i++) {
+                pe += `<span style="color:rgb(${parseInt(arr[10])},${parseInt(arr[i] / 5)},${parseInt(arr[i])}); transform:scale(${arr[i * 13] / 36})">${pi[i]}</span>`
+            };
+            document.getElementById('rst').innerHTML = pe
+        }
+
+        function showProcess() {
+            document.getElementById('process').innerHTML = audioContext.currentTime.toFixed(2) + '/' + duration;
+            showBuffer();
+            if (audioContext.currentTime == duration) {
+                cancelAnimationFrame(player)
+            } else {
+                player = requestAnimationFrame(showProcess);
+            }
+        }
+
+        document.getElementById('btn').addEventListener('click', play, false);
+
+    </script> -->
+    <!-- <script>
+
+        window.AudioContext = window.AudioContext || window.webkitAudioContext || window.mozAudioContext || window.msAudioContext;
+        try {
+            var context = new window.AudioContext();;
+            var source = null;
+            var audioBuffer = null;
+
+            function stopSound() {
+                if (source) {
+                    source.stop(0); //立即停止
+                }
+            }
+
+            function playSound() {
+                source = context.createBufferSource();
+                source.buffer = audioBuffer;
+                source.loop = true; //循环播放
+                source.connect(context.destination);
+                source.start(0); //立即播放
+            }
+
+            function initSound(arrayBuffer) {
+                context.decodeAudioData(arrayBuffer, function (buffer) { //解码成功时的回调函数
+                    audioBuffer = buffer;
+                    playSound();
+                }, function (e) { //解码出错时的回调函数
+                    console.log('Error decoding file', e);
+                });
+            }
+
+            function loadAudioFile(url) {
+                var xhr = new XMLHttpRequest(); //通过XHR下载音频文件
+                xhr.open('GET', url, true);
+                xhr.responseType = 'arraybuffer';
+                xhr.onload = function (e) { //下载完成
+                    initSound(this.response);
+                };
+                xhr.send();
+            }
+            loadAudioFile('../Content/public/mp3/music2.mp3');
+            $("#stop").click(function () {
+                stopSound();
+            });
+        } catch (e) {
+            console.log('!Your browser does not support AudioContext');
+        }
+
+
+    </script> -->
+</body>
+
+</html>
